@@ -1,2 +1,6 @@
 .DS_Store
 .Rhistory
+02_reproducibility/analysis/
+02_reproducibility/data/
+02_reproducibility/git/
+02_reproducibility/outputs/
