@@ -1,0 +1,54 @@
+
+# GitHub workflow (run in Terminal / PowerShell, NOT in R)
+#
+# IMPORTANT:
+# - Replace placeholders in <...> with the real URLs / names.
+# - You will clone the instructor repo (or workflow repo), then push your work
+#   to YOUR OWN GitHub repository for submission.
+#
+# --- Step A: Clone the instructor repository ---
+# 1) Choose (or create) a folder where you want to keep course projects:
+#    cd <"/Users/songtao/Dropbox/26SP/SODA 501">
+#    pwd 
+#
+# 2) Clone the instructor repo (& rename cloned folder)
+#    git clone https://github.com/jfedgerton/soda_501.git soda_501_clones
+#
+# 3) Move into the repo:
+#    cd <soda_501_clones>
+#
+# 4) (If relevant) move into the relevant week's folder (for example, 02_reproducibility)
+#    cd 02_reproducibility
+#    ls 
+#
+# 5) Confirm everything is clean:
+#    git status
+#
+# --- Step B: Create YOUR OWN GitHub repository and push your work ---
+# 6) Create a new repo on GitHub (web): e.g., soda501_sp26
+#
+# 7) Check your current branch name:
+#    git branch
+#
+# 8) Add YOUR repo as a remote called "origin" (if origin is not already set):
+#    git remote add origin <https://github.com/songtaoduan/soda501_sp26>
+#
+# 9) Confirm remotes:
+#    git remote -v
+#
+# 10) Stage, commit, and push your changes:
+#     git add .
+#     git commit -m "PS: reproducible workflow + regressions + plots"
+#     git push -u origin main
+#
+
+# FOR LATER WEEKS 
+# First, copy weekly subfolder from soda501_clones to soda501_sp26 and rename it as week_x_ps
+# Then work inside soda501_sp26 folder by changing cd
+# Add - Commit - Push 
+
+### cd "/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26"
+### git status
+### git add week_x_ps
+### git commit -m "PS: Week X"
+### git push -u origin main
