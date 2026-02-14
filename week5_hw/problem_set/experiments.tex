@@ -1,0 +1,112 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb, graphicx, hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage[margin=1in]{geometry}
+
+\title{ Big Data Experiments as Data Pipelines}
+\author{ }
+\date{ }
+
+\begin{document}
+\maketitle
+
+
+\section*{Conceptual Questions}
+Please write a three to ten sentence explanation for \textbf{ONE} of the two questions below.
+
+\begin{enumerate}
+\item \textbf{Estimands at scale (ITT vs ``product impact'').}
+In a platform A/B test, the treatment may (i) fail to deliver to some users, (ii) deliver but users may not engage, and (iii) outcomes may be measured through fragile logs.
+\begin{itemize}
+  \item Define the ITT estimand in this setting.
+  \item Give one reason ITT is the default for decision-making in production experiments.
+  \item Explain one case where ITT is not the estimand a research audience wants, and what additional assumptions you would need to target an alternative estimand.
+\end{itemize}
+
+\item \textbf{Measurement as part of the design.}
+Large experiments rely on instrumentation and event logs (missing events, changing definitions, bots).
+\begin{itemize}
+  \item Give two concrete examples of how logging changes can create ``fake treatment effects''.
+  \item Explain why randomization does not protect you from measurement drift.
+  \item Propose one monitoring strategy that would detect instrumentation problems early (what would you plot or test?).
+\end{itemize}
+\end{enumerate}
+
+\section*{Applied Exercises}
+Use the code in the week’s code tutorial and the lecture slides to answer the following questions.\\bigskip
+
+\begin{enumerate}
+\setcounter{enumi}{2}
+
+\item \textbf{Add a retention-style outcome and estimate its ATE.}
+Extend the pipeline so that, in addition to the existing outcomes, you compute a user-level retention / activity measure.
+\begin{itemize}
+  \item From the user-day logs, create \texttt{days\_active} = the number of days with \texttt{active == 1} for each user (ignore missing days).
+  \item Create \texttt{retained\_any} = 1 if \texttt{days\_active} $\ge 1$, else 0.
+  \item Add both outcomes to the analysis-ready dataset and estimate the ATE using:
+    \begin{enumerate}
+      \item difference in means, and
+      \item regression adjustment with \texttt{factor(block)} and cluster-robust SEs clustered at \texttt{cluster\_id}.
+    \end{enumerate}
+  \item Save your results as \texttt{outputs/tables/ate\_retention.csv}.
+\end{itemize}
+
+\item \textbf{Simulate noncompliance and compare ITT vs TOT (IV).}
+Modify the experiment so that treatment assignment does not always translate into treatment receipt.
+\begin{itemize}
+  \item Create a variable \texttt{received} such that:
+    \begin{itemize}
+      \item all controls have \texttt{received = 0},
+      \item treated units have \texttt{received = 1} with probability $p < 1$ (choose and report your $p$),
+      \item (optional) let $p$ depend on \texttt{platform} or \texttt{baseline\_activity}.
+    \end{itemize}
+  \item Redefine the outcome generation so that the treatment effect operates through \texttt{received} rather than \texttt{treat}.
+  \item Compute:
+    \begin{enumerate}
+      \item ITT: regress the outcome on \texttt{treat} (your original approach),
+      \item TOT / LATE using IV: treat \texttt{treat} as an instrument for \texttt{received}.
+    \end{enumerate}
+  \item Report the ITT and TOT estimates side-by-side and explain (2--5 sentences) why TOT is typically larger in magnitude than ITT in your simulation.
+  \item Save your results as \texttt{outputs/tables/itt\_vs\_tot.csv}.
+\end{itemize}
+
+\item \textbf{Multiple outcomes + multiple testing (BH/FDR).}
+In big experiments, it is easy to ``find significance'' by testing many outcomes.
+\begin{itemize}
+  \item Create 10 outcome variables at the user level:
+    \begin{itemize}
+      \item 1 outcome with a real treatment effect (use one of your existing outcomes),
+      \item 9 placebo outcomes with \textbf{no} treatment effect (simulate them so they depend on baseline covariates but not \texttt{treat}).
+    \end{itemize}
+  \item For each outcome $k$, estimate the treatment effect with robust SEs and extract a p-value.
+  \item Apply Benjamini--Hochberg (BH) correction to control the false discovery rate.
+  \item Create a table with columns: outcome name, $\hat{\tau}$, p-value, BH-adjusted p-value, and an indicator for whether it is significant at $q=0.05$.
+  \item Save your results as \texttt{outputs/tables/multiple\_testing.csv}.
+\end{itemize}
+
+\end{enumerate}
+
+\section*{Challenge Question (Optional --- if you finish early)}
+Choose \textbf{ONE} option.
+
+\begin{enumerate}[label=(\alph*)]
+\item \textbf{Randomization inference.}
+Implement a randomization-inference (permutation) p-value for the treatment effect on \texttt{converted}.
+\begin{itemize}
+  \item Keep the outcomes fixed.
+  \item Permute \texttt{treat} within blocks (or explain why you permuted globally).
+  \item Compute the null distribution of the difference-in-means estimator and report a two-sided p-value.
+  \item Plot the null distribution and mark the observed estimate.
+\end{itemize}
+
+\item \textbf{Interference / spillover simulation.}
+Simulate spillovers within \texttt{cluster\_id} so that control users’ outcomes depend on the fraction of treated users in their cluster.
+\begin{itemize}
+  \item Define an exposure variable, e.g., \texttt{exposure} = share treated in cluster.
+  \item Modify outcome generation so that outcomes depend on both \texttt{treat} and \texttt{exposure}.
+  \item Show (briefly) how naive user-level analysis can mis-estimate the direct effect when interference exists.
+\end{itemize}
+\end{enumerate}
+
+\end{document}
