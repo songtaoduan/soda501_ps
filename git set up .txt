@@ -47,13 +47,13 @@
 # FOR LATER WEEKS 
 # First, copy weekly subfolder from soda501_clones to soda501_sp26 and rename it as week_x_ps
 
-# cd <"/Users/songtao/Dropbox/26SP/SODA 501">
+# cd "/Users/songtao/Dropbox/26SP/SODA 501"
 # ls 
 # cp -R soda501_clones/02_reproducibility soda501_sp26/week2_ps
 
 
 # Then work inside soda501_sp26 folder by changing cd
-# Add - Commit - Push 
+# Add -> Commit -> Push 
 
 ### cd "/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26"
 ### git status
