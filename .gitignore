@@ -4,3 +4,16 @@
 02_reproducibility/data/
 02_reproducibility/git/
 02_reproducibility/outputs/
+
+# macOS
+.DS_Store
+
+# Large raw archives / corpora
+04_text_as_data_ps/demo/MovieSummaries.tar
+04_text_as_data_ps/demo/MovieSummaries_extracted/
+
+# Data + outputs (usually should not be tracked for problem sets)
+04_text_as_data_ps/data_raw/
+04_text_as_data_ps/data_processed/
+04_text_as_data_ps/outputs/
+04_text_as_data_ps/figures/

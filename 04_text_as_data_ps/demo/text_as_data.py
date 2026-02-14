@@ -39,115 +39,253 @@
 # NOTE: Students can run Parts 1–3 without BERTopic if installation is a barrier.
 # (BERTopic is included because it is part of this week's material.)
 
+#pip install numpy pandas matplotlib seaborn scikit-learn gensim sentence-transformers bertopic umap-learn hdbscan wordcloud pyLDAvis
+
 import os
 import re
 import random
-
+import tarfile
+import ast
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
+import ast
 from gensim.models import Word2Vec
+from sentence_transformers import SentenceTransformer
+from bertopic import BERTopic
+from umap import UMAP
+import hdbscan
+from wordcloud import WordCloud
+import pyLDAvis
+import pyLDAvis.lda_model
+import seaborn as sns
+from sklearn.manifold import TSNE
 
 # Reproducibility
 random.seed(123)
 np.random.seed(123)
 
 # Create project folders (safe to run repeatedly)
-os.makedirs("data_raw", exist_ok=True)
-os.makedirs("data_processed", exist_ok=True)
-os.makedirs("figures", exist_ok=True)
-os.makedirs("outputs", exist_ok=True)
-os.makedirs("src", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/data_raw", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/data_processed", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/figures", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/outputs", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/src", exist_ok=True)
+
+os.makedirs("soda501_sp26/04_text_as_data_ps/data_raw", exist_ok=True) # copy from relative path and save new directory
+os.makedirs("soda501_sp26/04_text_as_data_ps/data_processed", exist_ok=True)
+os.makedirs("soda501_sp26/04_text_as_data_ps/figures", exist_ok=True)
+os.makedirs("soda501_sp26/04_text_as_data_ps/outputs", exist_ok=True)
+os.makedirs("soda501_sp26/04_text_as_data_ps/src", exist_ok=True)
+
 
 # -----------------------------------------------------------------------------
-# Part 0: Create a small synthetic text dataset (for a self-contained tutorial)
+# Part 0: Load the CMU Movie Summary Corpus from MovieSummaries.tar.gz
 # -----------------------------------------------------------------------------
-# In a real pipeline, this would be where you load text data from a file/API/DB.
-# Example:
-#   df = pd.read_csv("data_raw/my_corpus.csv")
-#   docs = df["text"].tolist()
+# Expected archive location (based on your screenshot):
+#   04_text_as_data/demo/MovieSummaries.tar.gz
+#
+# You can download here: http://www.cs.cmu.edu/~ark/personas/data/MovieSummaries.tar.gz
+#
+# This block:
+#   1) extracts the archive (if needed)
+#   2) loads plot summaries + metadata
+#   3) builds df with columns: doc_id, text, y_outcome, true_topic (optional)
+#
+# Teaching note:
+# - We keep this explicit (no helper functions) so students can follow every step.
+# -----------------------------------------------------------------------------
 
-topic_words_elections = [
-    "election", "vote", "turnout", "campaign", "candidate", "ballot", "district",
-    "polling", "primary", "debate", "incumbent", "swing", "party", "coalition"
-]
-topic_words_health = [
-    "health", "hospital", "vaccine", "clinic", "patient", "disease", "outbreak",
-    "public", "policy", "insurance", "treatment", "nurse", "doctor", "risk"
-]
-topic_words_misinformation = [
-    "misinformation", "platform", "social", "media", "bot", "rumor", "viral",
-    "network", "algorithm", "moderation", "content", "narrative", "false", "signal"
-]
-common_words = [
-    "study", "evidence", "analysis", "data", "method", "results", "model",
-    "effects", "estimate", "theory", "research", "observed"
-]
 
-docs = []
-true_topic = []
-y = []
 
-# We generate 300 short documents: 100 per topic
-# y is a synthetic "outcome" that depends on topic + random noise
-# (This is for the regression section later.)
+# 0.1 Paths
+#archive_path = os.path.join("04_text_as_data_ps", "demo", "MovieSummaries.tar")
+#extract_dir  = os.path.join("04_text_as_data_ps", "demo", "MovieSummaries_extracted")
 
-for i in range(100):
-    # Elections docs
-    tokens = (
-        random.choices(topic_words_elections, k=random.randint(30, 45)) +
-        random.choices(common_words, k=random.randint(10, 20))
-    )
-    random.shuffle(tokens)
-    docs.append(" ".join(tokens))
-    true_topic.append("elections")
-    y.append(1.0 + np.random.normal(0, 0.5))
 
-for i in range(100):
-    # Health docs
-    tokens = (
-        random.choices(topic_words_health, k=random.randint(30, 45)) +
-        random.choices(common_words, k=random.randint(10, 20))
-    )
-    random.shuffle(tokens)
-    docs.append(" ".join(tokens))
-    true_topic.append("health")
-    y.append(0.0 + np.random.normal(0, 0.5))
+archive_path = os.path.join("soda501_sp26", "04_text_as_data_ps", "demo", "MovieSummaries.tar")
+extract_dir  = os.path.join("soda501_sp26", "04_text_as_data_ps", "demo", "MovieSummaries_extracted")
 
-for i in range(100):
-    # Misinformation docs
-    tokens = (
-        random.choices(topic_words_misinformation, k=random.randint(30, 45)) +
-        random.choices(common_words, k=random.randint(10, 20))
-    )
-    random.shuffle(tokens)
-    docs.append(" ".join(tokens))
-    true_topic.append("misinformation")
-    y.append(-1.0 + np.random.normal(0, 0.5))
 
-df = pd.DataFrame(
-    {
-        "doc_id": np.arange(1, len(docs) + 1),
-        "text": docs,
-        "true_topic": true_topic,
-        "y_outcome": y,
-    }
+os.makedirs(extract_dir, exist_ok=True)
+
+print("\n--- Movie corpus: archive path ---")
+print(archive_path)
+
+# 0.2 Extract (only if the expected files are not already present)
+# We will check for plot_summaries.txt and movie.metadata.tsv *somewhere* in extract_dir.
+# Because tar archives sometimes include a top-level folder, we’ll (a) list members,
+# then (b) extract all if needed.
+
+need_extract = True
+for root, dirs, files in os.walk(extract_dir):
+    if ("plot_summaries.txt" in files) and ("movie.metadata.tsv" in files):
+        need_extract = False
+        break
+
+if need_extract:
+    print("\n--- Extracting MovieSummaries.tar ---")
+    with tarfile.open(archive_path, "r:tar") as tar:
+        tar.extractall(path=extract_dir)
+    print("Extraction complete:", extract_dir)
+else:
+    print("\n--- Extraction skipped (files already present) ---") 
+
+
+
+# 0.3 Locate the extracted files (they might be in a subfolder)
+plots_path = None
+meta_path  = None
+
+for root, dirs, files in os.walk(extract_dir):
+    if "plot_summaries.txt" in files:
+        plots_path = os.path.join(root, "plot_summaries.txt")
+    if "movie.metadata.tsv" in files:
+        meta_path = os.path.join(root, "movie.metadata.tsv")
+
+print("\n--- Located extracted files ---")
+print("plots_path:", plots_path)
+print("meta_path: ", meta_path)
+
+if plots_path is None or meta_path is None:
+    raise FileNotFoundError("Could not find plot_summaries.txt and/or movie.metadata.tsv after extraction.")
+
+# 0.4 Load plot summaries (tab-separated: wikipedia_movie_id \t plot_summary)
+plots = pd.read_csv(
+    plots_path,
+    sep="\t",
+    header=None,
+    names=["wikipedia_movie_id", "text"],
+    encoding="utf-8",
+    quoting=3,
+    on_bad_lines="skip"
 )
 
-print("\n--- Synthetic corpus preview ---")
-print(df.head())
-print("\n--- True topic distribution ---")
-print(df["true_topic"].value_counts())
+print("\n--- Plots loaded ---")
+print("plots shape:", plots.shape)
+print(plots.head())
 
-df.to_csv("data_raw/week_synthetic_corpus.csv", index=False)
+# 0.5 Load metadata (tab-separated, no header)
+# CMU metadata columns (by position) are commonly:
+# 0 wikipedia_movie_id
+# 1 freebase_movie_id
+# 2 movie_name
+# 3 release_date
+# 4 box_office_revenue
+# 5 runtime
+# 6 languages
+# 7 countries
+# 8 genres (dict-like string)
+meta = pd.read_csv(
+    meta_path,
+    sep="\t",
+    header=None,
+    encoding="utf-8",
+    quoting=3,
+    on_bad_lines="skip"
+)
+
+print("\n--- Metadata loaded ---")
+print("meta shape:", meta.shape)
+print(meta.head())
+
+# Name the key columns we’ll actually use
+meta = meta.rename(columns={
+    0: "wikipedia_movie_id",
+    2: "movie_name",
+    3: "release_date",
+    8: "genres_raw"
+})
+
+# Keep only the columns we care about (this reduces confusion for students)
+meta = meta[["wikipedia_movie_id", "movie_name", "release_date", "genres_raw"]]
+
+# 0.6 Merge plots + metadata
+df = plots.merge(meta, on="wikipedia_movie_id", how="left")
+
+print("\n--- Merged movie df ---")
+print("df shape:", df.shape)
+print(df[["wikipedia_movie_id", "movie_name", "release_date"]].head())
+
+# 0.7 Clean text (drop missing/very short summaries)
+df["text"] = df["text"].astype(str)
+df["text_len"] = df["text"].str.len()
+
+df = df[df["text_len"] >= 200].copy()   # keep reasonably informative plots
+df = df.dropna(subset=["text"]).copy()
+
+print("\n--- After filtering short plots ---")
+print("df shape:", df.shape)
+print(df["text_len"].describe())
+
+# 0.8 Create an outcome for the regression section (simple + interpretable)
+# Here: y_outcome = 1 if "Action" appears in the genres dict, else 0
+# genres_raw is often a dict-like string; we parse it with ast.literal_eval.
+
+y_outcome = []
+true_topic = []
+
+for g in df["genres_raw"].tolist():
+    # Default values if parsing fails
+    is_action = 0
+    topic_label = "other"
+
+    if isinstance(g, str) and len(g) > 0:
+        try:
+            g_dict = ast.literal_eval(g)   # dict of {freebase_genre_id: genre_name}
+            g_text = " ".join([str(v) for v in g_dict.values()]).lower()
+
+            if "action" in g_text:
+                is_action = 1
+                topic_label = "action"
+            elif "comedy" in g_text:
+                topic_label = "comedy"
+            elif "drama" in g_text:
+                topic_label = "drama"
+            elif "horror" in g_text:
+                topic_label = "horror"
+            else:
+                topic_label = "other"
+
+        except Exception:
+            # If genre parsing fails, keep defaults
+            pass
+
+    y_outcome.append(is_action)
+    true_topic.append(topic_label)
+
+df["y_outcome"] = y_outcome
+df["true_topic"] = true_topic
+
+print("\n--- Outcome + rough topic labels ---")
+print(df["y_outcome"].value_counts(dropna=False))
+print(df["true_topic"].value_counts().head(10))
+
+# 0.9 Optional: downsample for classroom runtime (BERTopic + embeddings can be heavy)
+# Keep it reproducible with seed=123.
+max_docs = 800  # adjust (e.g., 800 for quick laptops, 3000 for your machine)
+if df.shape[0] > max_docs:
+    df = df.sample(n=max_docs, random_state=123).copy()
+
+# 0.10 Add doc_id and keep a clean set of columns for later steps
+df = df.reset_index(drop=True)
+df["doc_id"] = np.arange(1, df.shape[0] + 1)
+
+df = df[["doc_id", "wikipedia_movie_id", "movie_name", "release_date", "text", "true_topic", "y_outcome"]].copy()
+
+print("\n--- Final movie corpus preview ---")
+print(df.head())
+print("\n--- Corpus size ---")
+print(df.shape)
+
+df.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/data_raw/week_movie_corpus.csv", index=False)
+
+
 
 # -----------------------------------------------------------------------------
 # Part 1: Tokenization + basic preprocessing
@@ -155,11 +293,20 @@ df.to_csv("data_raw/week_synthetic_corpus.csv", index=False)
 # For many "classic" text-as-data workflows, we build a document-term matrix (DTM)
 # with CountVectorizer or TF-IDF. This implicitly defines a tokenizer + vocabulary.
 
+df = pd.read_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/data_raw/week_movie_corpus.csv")
+
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/data_raw", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/data_processed", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/figures", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/outputs", exist_ok=True)
+#os.makedirs("Penn State/Spring 2026/SoDA 501/Week 4/src", exist_ok=True)
+
+
 vectorizer = CountVectorizer(
     lowercase=True,
     stop_words="english",
     token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z]+\b",  # words with >=2 letters
-    min_df=2
+    min_df=5
 )
 
 X_counts = vectorizer.fit_transform(df["text"])
@@ -177,7 +324,26 @@ top_terms = pd.DataFrame({"term": vocab[top_idx], "total_count": term_totals[top
 print("\n--- Top terms by total count ---")
 print(top_terms)
 
-top_terms.to_csv("outputs/week_top_terms.csv", index=False)
+top_terms.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/week_top_terms.csv", index=False)
+
+# Generate a dictionary of word frequencies from the CountVectorizer results
+word_freqs = dict(zip(vocab, term_totals))
+
+# Create the Word Cloud
+wordcloud = WordCloud(
+    width=800, 
+    height=400, 
+    background_color='white',
+    colormap='viridis'
+).generate_from_frequencies(word_freqs)
+
+# Plot
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title("Word Cloud of Document Terms (min_df=5)", fontsize=16)
+plt.savefig("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/figures/wordcloud.png", dpi=200)
+plt.show()
 
 # -----------------------------------------------------------------------------
 # Part 2: Classic topic model (LDA)
@@ -212,17 +378,27 @@ df_lda["lda_topic_prob"] = doc_topic.max(axis=1)
 print("\n--- LDA: dominant topic counts ---")
 print(df_lda["lda_topic"].value_counts().sort_index())
 
-df_lda.to_csv("data_processed/week_with_lda_topics.csv", index=False)
+df_lda.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/data_processed/week_with_lda_topics.csv", index=False)
 
 topic_counts = df_lda["lda_topic"].value_counts().sort_index()
 plt.figure(figsize=(8, 4))
 plt.bar(topic_counts.index.astype(str), topic_counts.values)
-plt.title("LDA: Dominant Topic Counts (Synthetic Corpus)")
+plt.title("LDA: Dominant Topic Counts (Movie Plots)")
 plt.xlabel("Dominant topic")
 plt.ylabel("Number of documents")
 plt.tight_layout()
-plt.savefig("figures/week_lda_dominant_topic_counts.png", dpi=200)
+plt.savefig("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps//figures/week_lda_dominant_topic_counts.png", dpi=200)
+plt.show()
 plt.close()
+
+
+lda_display = pyLDAvis.lda_model.prepare(
+    lda, 
+    X_counts, 
+    vectorizer, 
+    mds='tsne'
+)
+pyLDAvis.save_html(lda_display, '/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/lda_visualization.html')
 
 # -----------------------------------------------------------------------------
 # Part 3: Word embedding regression (Word2Vec -> doc vectors -> Ridge regression)
@@ -250,9 +426,21 @@ print(len(w2v.wv.index_to_key))
 
 doc_vectors = []
 for tokens in tokenized_docs:
-    vecs = w2v.wv[tokens]
-    doc_vec = vecs.mean(axis=0)
+    tokens_in_vocab = []
+    for t in tokens:
+        if t in w2v.wv:
+            tokens_in_vocab.append(t)
+
+    if len(tokens_in_vocab) == 0:
+        doc_vec = np.zeros(w2v.vector_size)
+    else:
+        vecs = w2v.wv[tokens_in_vocab]
+        doc_vec = vecs.mean(axis=0)
+
     doc_vectors.append(doc_vec)
+
+doc_vectors = np.vstack(doc_vectors)
+
 
 doc_vectors = np.vstack(doc_vectors)
 print("\n--- Document embedding matrix ---")
@@ -279,24 +467,36 @@ print("R^2: ", round(r2, 4))
 metrics = pd.DataFrame(
     {"model": ["word2vec_ridge"], "mae": [mae], "rmse": [rmse], "r2": [r2]}
 )
-metrics.to_csv("outputs/week_word2vec_regression_metrics.csv", index=False)
+metrics.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/week_word2vec_regression_metrics.csv", index=False)
 
-plt.figure(figsize=(5, 5))
-plt.scatter(y_test, y_pred, alpha=0.6)
-plt.title("Word2Vec Regression: Predicted vs Actual")
-plt.xlabel("Actual y_outcome")
-plt.ylabel("Predicted y_outcome")
-plt.tight_layout()
-plt.savefig("figures/week_word2vec_pred_vs_actual.png", dpi=200)
-plt.close()
+plt.figure(figsize=(8, 6))
+sns.regplot(x=y_test, y=y_pred, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+plt.xlabel("Actual Outcome (y_test)")
+plt.ylabel("Predicted Outcome (y_pred)")
+plt.title("Ridge Regression: Actual vs. Predicted Values")
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.savefig("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/figures/word2vec_regression_actual_vs_predicted.png", dpi=200)
+plt.show()
+
+words_to_plot = w2v.wv.index_to_key[:500]
+word_vectors = np.array([w2v.wv[w] for w in words_to_plot])
+
+tsne = TSNE(n_components=2, random_state=123, perplexity=30)
+embeddings_2d = tsne.fit_transform(word_vectors)
+
+plt.figure(figsize=(12, 10))
+plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], alpha=0.5, s=10)
+
+for i, word in enumerate(words_to_plot[::20]): # Label every 20th word
+    plt.annotate(word, xy=(embeddings_2d[i*20, 0], embeddings_2d[i*20, 1]), fontsize=9)
+
+plt.title("t-SNE Projection of Word2Vec Embeddings")
+plt.savefig("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/figures/word2vec_embeddings_tsne.png", dpi=200)
+plt.show()
 
 # -----------------------------------------------------------------------------
 # Part 4: BERT-based topic model (BERTopic)
 # -----------------------------------------------------------------------------
-from sentence_transformers import SentenceTransformer
-from bertopic import BERTopic
-from umap import UMAP
-import hdbscan
 
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 embeddings = embed_model.encode(df["text"].tolist(), show_progress_bar=True)
@@ -313,9 +513,10 @@ umap_model = UMAP(
 )
 
 hdbscan_model = hdbscan.HDBSCAN(
-    min_cluster_size=15,
+    min_cluster_size=5,
     metric="euclidean",
-    cluster_selection_method="eom"
+    cluster_selection_method="eom",
+    prediction_data=True
 )
 
 topic_model = BERTopic(
@@ -338,8 +539,8 @@ topic_info = topic_model.get_topic_info()
 print("\n--- BERTopic: topic info (head) ---")
 print(topic_info.head(10))
 
-df_bert.to_csv("data_processed/week_with_bertopic.csv", index=False)
-topic_info.to_csv("outputs/week_bertopic_topic_info.csv", index=False)
+df_bert.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/data_processed/week_with_bertopic.csv", index=False)
+topic_info.to_csv("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/week_bertopic_topic_info.csv", index=False)
 
 topic_counts_bt = topic_info.loc[topic_info["Topic"] != -1, ["Topic", "Count"]]
 plt.figure(figsize=(8, 4))
@@ -348,5 +549,15 @@ plt.title("BERTopic: Topic Counts (Excluding Outliers)")
 plt.xlabel("Topic")
 plt.ylabel("Count")
 plt.tight_layout()
-plt.savefig("figures/week_bertopic_topic_counts.png", dpi=200)
+plt.savefig("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/figures/week_bertopic_topic_counts.png", dpi=200)
+plt.show()
 plt.close()
+
+fig_hierarchy = topic_model.visualize_hierarchy()
+fig_hierarchy.show()
+fig_hierarchy.write_html("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/topic_hierarchy.html")
+
+fig_docs = topic_model.visualize_documents(df["text"].tolist(), embeddings=embeddings)
+fig_docs.show()
+fig_docs.write_html("/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26/04_text_as_data_ps/outputs/document_map.html")
+
