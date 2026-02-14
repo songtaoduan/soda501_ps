@@ -55,7 +55,7 @@
 # Then work inside soda501_sp26 folder by changing cd
 # Add -> Commit -> Push 
 
-### cd "/Users/songtao/Dropbox/26SP/SODA 501/soda501_sp26"
+### cd "/Users/songtao/Dropbox/26SP/SODA 501/soda501_ps"
 ### git status
 ### git add week_2_ps
 ### git commit -m "PS: week 2"

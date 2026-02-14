@@ -1,0 +1,103 @@
+Contact List for Global Political Science Network
+
+1. Dr. Sarah Johnson (USA)
+   Office: (555) 123-4567
+   Mobile: 555-987-6543
+   International: +1-555-246-8135
+   Email: sjohnson@university.edu
+
+2. Prof. Michael Chen (Canada)
+   Phone: 5551234567
+   Alternative: (555) 876-5432
+   International: +1 555 789 0123
+   Email: mchen@university.edu
+
+3. Asst. Prof. Emily Rodriguez (USA)
+   Contact: 555.789.0123
+   WhatsApp: +1 (555) 135-2468
+   Email: erodriguez@university.edu
+
+4. Dr. James Wilson (UK)
+   Office: +44 20 7946 0958
+   Mobile: +44 7700 900345
+   Email: jwilson@university.ac.uk
+
+5. Prof. Lisa Thompson (Australia)
+   Main: +61 2 9876 5432
+   Secondary: +61-4-1234-5678
+   Email: lthompson@university.edu.au
+
+6. Grad Student John Smith (USA)
+   Phone: 555-123-4567
+   Alt: (555) 987-6543
+   Email: jsmith@university.edu
+
+7. Department Secretary (USA)
+   Office: 1-555-111-2222
+   Fax: 1 555 999 8888
+   Email: secretary@university.edu
+
+8. IT Support (India)
+   Helpdesk: +91 22 2778 9999
+   Toll-free: 1800 267 7777
+   Email: itsupport@university.edu
+
+9. Library Liaison (USA)
+   Contact: 555 789 0123
+   Alternative: (555)456-7890
+   Email: library@university.edu
+
+10. Research Lab (Germany)
+    Main: +49 30 1234 5678
+    Lab Manager: +49.30.9876.5432
+    Email: research.lab@university.de
+
+11. Visiting Scholar Dr. Anna Müller (Austria)
+    Office: +43 1 234567890
+    Mobile: +43-664-1234567
+    Email: amuller@university.at
+
+12. Conference Organizer (USA)
+    Hotline: 1-800-555-1234
+    International: +1 (555) 987-6543 ext. 123
+    Email: conference@university.edu
+
+13. Prof. Yuki Tanaka (Japan)
+    Office: +81 3 1234 5678
+    Mobile: +81 90-1234-5678
+    Email: ytanaka@university.ac.jp
+
+14. Dr. Maria García (Spain)
+    Contact: +34 91 123 45 67
+    WhatsApp: +34 600 123 456
+    Email: mgarcia@university.es
+
+15. Asst. Prof. Olga Petrov (Russia)
+    Office: +7 495 123-45-67
+    Mobile: +7 (910) 123-45-67
+    Email: opetrov@university.ru
+
+16. Guest Lecturer Pierre Dubois (France)
+    Contact: +33 1 23 45 67 89
+    Mobile: +33 6 12 34 56 78
+    Email: pdubois@university.fr
+
+17. Researcher Li Wei (China)
+    Office: +86 10 1234 5678
+    Mobile: +86 123 4567 8901
+    Email: lwei@university.cn
+
+18. Dept. Head Ahmed Hassan (Egypt)
+    Office: +20 2 1234 5678
+    Mobile: +20 100 123 4567
+    Email: ahassan@university.eg
+
+19. Librarian Susan Brown (New Zealand)
+    Contact: +64 4 123 4567
+    Mobile: +64 21 123 456
+    Email: sbrown@university.ac.nz
+
+20. Exchange Coordinator Carlos Silva (Brazil)
+    Office: +55 11 1234-5678
+    Mobile: +55 (11) 98765-4321
+    Email: csilva@university.br
