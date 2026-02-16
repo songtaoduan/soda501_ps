@@ -12,7 +12,7 @@
 #    pwd 
 #
 # 2) Clone the instructor repo (& rename cloned folder)
-#    git clone https://github.com/jfedgerton/soda_501.git soda_501_clones
+#    git clone https://github.com/jfedgerton/soda_501.git clones
 #
 # 3) Move into the repo:
 #    cd <soda_501_clones>
@@ -25,14 +25,14 @@
 #    git status
 #
 # --- Step B: Create YOUR OWN GitHub repository and push your work ---
-# 6) Create a new repo on GitHub (web): e.g., soda501_sp26
-#    git init soda501_sp26
+# 6) Create a new repo on GitHub (web): e.g., soda501_ps
+#    git init soda501_ps
 #
 # 7) Check your current branch name:
 #    git branch
 #
 # 8) Add YOUR repo as a remote called "origin" (if origin is not already set):
-#    git remote add origin <https://github.com/songtaoduan/soda501_sp26>
+#    git remote add origin https://github.com/songtaoduan/soda501_ps
 #
 # 9) Confirm remotes:
 #    git remote -v
