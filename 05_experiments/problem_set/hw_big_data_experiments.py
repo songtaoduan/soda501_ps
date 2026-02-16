@@ -267,6 +267,7 @@ t = user[user["treat"] == 1]
 sd_pool_baseline = np.sqrt((c["baseline_activity"].var() + t["baseline_activity"].var()) / 2)
 smd_baseline_activity = (t["baseline_activity"].mean() - c["baseline_activity"].mean()) / sd_pool_baseline
 
+
 sd_pool_pre = np.sqrt((c["pre_metric"].var() + t["pre_metric"].var()) / 2)
 smd_pre_metric = (t["pre_metric"].mean() - c["pre_metric"].mean()) / sd_pool_pre
 
@@ -418,13 +419,12 @@ plt.xlabel("Difference in means (converted)")
 plt.ylabel("Count")
 plt.tight_layout()
 plt.savefig("outputs/figures/aa_placebo_hist.png", dpi=150)
-plt
+plt.show()
 plt.close()
 
 ###############################################
 # STEP 9: SAVE ENVIRONMENT INFO
 ###############################################
-
 
 logging.info("Saving environment information")
 
@@ -511,35 +511,70 @@ logging.info("Saved: outputs/tables/ate_retention.csv")
 
 # add received + include it in assignment table
 
+# -----------------------------
+# 1) ASSIGNMENT: treat -> received (noncompliance)
+# -----------------------------
 p_receive = 0.80  # choose and report p (< 1)
 
+users = users.copy()
+
+# received is 0 for everyone by default (controls + treated who don't comply)
 users["received"] = 0
-users.loc[users["treat"] == 1, "received"] = (
-    (np.random.rand((users["treat"] == 1).sum()) < p_receive).astype(int)
+
+# among treated, comply with probability p_receive
+treated_mask = users["treat"].eq(1)
+users.loc[treated_mask, "received"] = (
+    (np.random.rand(treated_mask.sum()) < p_receive).astype(int)
 )
 
-# IMPORTANT: include received in assignment so it flows into logs
-assignment = users[[
+# keep a single source of truth for assignment variables
+assignment_cols = [
     "user_id", "treat", "received", "block", "platform", "cluster_id",
     "signup_cohort", "baseline_activity", "pre_metric"
-]].copy()
+]
+assignment = users[assignment_cols].copy()
 
+
+# -----------------------------
+# 2) ENSURE LOGS GET treat/received FROM assignment (do NOT rely on old columns)
+# -----------------------------
+logs = logs.copy()
+
+# If logs already has treat/received from earlier steps, drop them to avoid conflicts
+for col in ["treat", "received", "block", "platform", "cluster_id", "signup_cohort", "baseline_activity", "pre_metric"]:
+    if col in logs.columns:
+        logs = logs.drop(columns=[col])
+
+# Merge assignment into logs (this is the critical fix)
+logs = logs.merge(assignment, on="user_id", how="left", validate="many_to_one")
+
+# Safety checks (optional but recommended)
+assert (logs.loc[logs["treat"].eq(0), "received"] == 0).all(), "Controls must have received=0"
+# treated can be 0/1 depending on compliance
+
+
+# -----------------------------
+# 3) OUTCOME GENERATION: effect operates through received (NOT treat)
+# -----------------------------
 logs["click_rate"] = logs["base_rate"] * np.exp(0.05 * logs["received"])
+
 # purchase probability lift operates through received (not treat)
 lin = (
     -5.0
     + 0.08 * logs["clicks"]
     + 0.10 * np.log1p(logs["baseline_activity"])
     + 0.15 * logs["received"]
-    + 0.02 * (logs["dow"].isin([6, 7])).astype(float)
+    + 0.02 * logs["dow"].isin([6, 7]).astype(float)
 )
+logs["purchase_prob"] = sc.expit(lin.to_numpy())
 
-# carry received into user-level dataset
+
+# -----------------------------
+# 4) USER-LEVEL AGG: keep treat & received (now correctly defined)
+# -----------------------------
+group_cols = assignment_cols  # same keys as assignment
 user = (
-    logs.groupby([
-        "user_id", "treat", "received", "block", "platform", "cluster_id",
-        "signup_cohort", "baseline_activity", "pre_metric"
-    ], as_index=False)
+    logs.groupby(group_cols, as_index=False)
     .agg(
         post_clicks=("clicks", "sum"),
         post_purchases=("purchase", "sum"),
@@ -612,6 +647,7 @@ takeup_treated = user.loc[user["treat"] == 1, "received"].mean()
 takeup_control = user.loc[user["treat"] == 0, "received"].mean()
 first_stage = takeup_treated - takeup_control
 
+
 # received is column index 1 in X: [const, received, block...]
 tot_beta = iv_cl.params[1]
 tot_se   = iv_cl.bse[1]
@@ -633,6 +669,7 @@ out = pd.DataFrame([{
 
 out.to_csv("outputs/tables/itt_vs_tot.csv", index=False)
 logging.info("Saved: outputs/tables/itt_vs_tot.csv")
+
 
 ## Because not everyone assigned to treatment actually receives it,
 ## the ITT estimate (effect of assignment) is diluted: treated noncompliers 
