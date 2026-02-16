@@ -41,6 +41,11 @@ library(broom)
 ###############################################
 
 # Create necessary directories for our project
+
+setwd("/Users/songtao/Dropbox/26SP/SODA 501/soda501_ps/05_experiments/demo")  
+getwd()
+
+
 dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)         # Raw, unprocessed data (e.g., event logs)
 dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)   # Cleaned, processed data (analysis-ready)
 dir.create("outputs/figures", recursive = TRUE, showWarnings = FALSE)  # Plots and visualizations
