@@ -1,2 +1,0 @@
-outcome,p_receive,takeup_treated_mean,takeup_control_mean,first_stage,ITT_coef_treat,ITT_se_cluster,ITT_p_value,TOT_coef_received,TOT_se_cluster,TOT_p_value
-converted,0.8,0.8008561027323279,0.0,0.8008561027323279,0.011817654982947363,0.001922520556116876,7.898254768298027e-10,0.014755929614369197,0.00294607758413404,7.617958624771388e-07
