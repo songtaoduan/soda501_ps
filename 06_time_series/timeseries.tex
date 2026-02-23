@@ -1,0 +1,119 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb, graphicx, hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage[margin=1in]{geometry}
+
+\title{ Time Series Analyses for Social Data}
+\author{ }
+\date{ }
+
+\begin{document}
+\maketitle
+
+
+\section*{Conceptual Questions}
+Please write a three to ten sentence explanation for \textbf{ONE} of the two questions below.
+
+\begin{enumerate}
+\item \textbf{Time leakage and honest evaluation.}
+In the coding tutorial, you computed RMSE under (i) a random train/test split and (ii) a time-based split (train on past, test on future).
+\begin{itemize}
+  \item Explain what \emph{time leakage} is and why random splits usually inflate model performance for time-indexed data.
+  \item Explain why ``train on past, test on future'' is the default evaluation rule.
+  \item Describe what \emph{rolling-origin} (backtesting) adds beyond a single time split.
+\end{itemize}
+
+\item \textbf{Causal timing designs and placebos.}
+Interrupted Time Series (ITS) is often used when an intervention occurs at a known time $t_0$ but randomization is not available.
+\begin{itemize}
+  \item State one key identification assumption behind ITS.
+  \item Explain the difference between a ``level change'' and a ``trend change'' at $t_0$.
+  \item Propose one placebo diagnostic and explain what failure would look like (e.g., a fake intervention date, pre-trend check).
+\end{itemize}
+\end{enumerate}
+
+\section*{Applied Exercises}
+Use the code in \texttt{timeseries.R} and the lecture slides to answer the following questions.\\bigskip
+
+\begin{enumerate}
+\setcounter{enumi}{2}
+
+\item \textbf{Decomposition: trend + seasonality + residual (save a figure).}
+Extend the synthetic daily time series in \texttt{timeseries.R} by decomposing it into components.
+\begin{itemize}
+  \item Convert the daily series to a \texttt{ts} object with weekly frequency (\texttt{frequency = 7}).
+  \item Run a seasonal-trend decomposition (e.g., \texttt{stl()}).
+  \item Create a single figure showing the observed series and the decomposed components.
+  \item Save the figure as \texttt{outputs/figures/decomposition.png}.
+\end{itemize}
+
+\item \textbf{Rolling-origin evaluation (backtesting) for forecasting RMSE.}
+The lecture emphasizes that evaluation should mimic deployment (fit on past, predict future).
+Implement a rolling-origin backtest that produces \emph{many} out-of-sample errors instead of a single split.
+\begin{itemize}
+  \item Choose a forecast horizon $h = 1$ day ahead.
+  \item Choose an initial training window (e.g., first 300 days).
+  \item For each time $t$ from the end of the initial window to the end of the series:
+    \begin{enumerate}
+      \item fit an AR(1) model to data up to $t$ (use \texttt{arima(..., order=c(1,0,0))} or \texttt{forecast::auto.arima} if available),
+      \item forecast $y_{t+1}$,
+      \item store the one-step-ahead error $e_{t+1} = y_{t+1} - \hat{y}_{t+1}$.
+    \end{enumerate}
+  \item Compute RMSE across the backtest errors and compare it to the single time-split RMSE from the tutorial.
+  \item Save:
+    \begin{itemize}
+      \item a CSV of the backtest errors (\texttt{date}, \texttt{y}, \texttt{yhat}, \texttt{error}) as \texttt{outputs/tables/backtest\_errors.csv}, and
+      \item a line plot of $y_t$ and $\hat{y}_t$ over the test region as \texttt{outputs/figures/backtest\_forecast.png}.
+    \end{itemize}
+\end{itemize}
+
+\item \textbf{Interrupted Time Series (ITS): level and slope change + placebo date.}
+Create a synthetic intervention at time $t_0$ on top of a trend (use the lecture’s ITS framing).
+\begin{itemize}
+  \item Pick an intervention date $t_0$ around the middle of the series (report your choice).
+  \item Create an intervention indicator $I[t \ge t_0]$ and a post-intervention time counter $(t - t_0)\,I[t \ge t_0]$.
+  \item Fit an ITS regression:
+  \[
+    y_t = \alpha + \delta t + \tau_1 I[t \ge t_0] + \tau_2 (t - t_0)I[t \ge t_0] + \varepsilon_t
+  \]
+  \item Plot three lines on the same figure:
+    \begin{itemize}
+      \item observed $y_t$,
+      \item fitted values from the ITS model,
+      \item counterfactual values setting $\tau_1=\tau_2=0$ (pre-period trend extended forward).
+    \end{itemize}
+  \item Run a placebo ITS with a \emph{fake} intervention date in the pre-period and report whether it produces a large ``effect.'' (Briefly interpret.)
+  \item Save:
+    \begin{itemize}
+      \item coefficient table for the real ITS and placebo ITS as \texttt{outputs/tables/its\_results.csv}, and
+      \item your main ITS figure as \texttt{outputs/figures/its\_plot.png}.
+    \end{itemize}
+\end{itemize}
+
+\end{enumerate}
+
+\section*{Challenge Question (Optional --- if you finish early)}
+Choose \textbf{ONE} option.
+
+\begin{enumerate}[label=(\alph*)]
+\item \textbf{Switchback experiment (time-block randomization).}
+Simulate a switchback design where treatment alternates by time blocks (e.g., every 7 days) and estimate the effect.
+\begin{itemize}
+  \item Create a block assignment over time (alternating 0/1).
+  \item Generate an outcome with trend + noise + a treatment effect that operates only during treated blocks.
+  \item Estimate the difference in means across treated vs control blocks.
+  \item Placebo: shift assignment by 1 block (lag the assignment) and show the estimated effect shrinks toward 0.
+  \item Save a plot of the time series with shaded treated blocks as \texttt{outputs/figures/switchback.png}.
+\end{itemize}
+
+\item \textbf{Sequential testing / peeking inflation (simulation).}
+Simulate repeated monitoring where you compute a p-value every day after a minimum start date.
+\begin{itemize}
+  \item Under a true null (no treatment effect), compute daily ``p-values'' for a naive treated vs control comparison.
+  \item Show that the probability of getting at least one p-value $< 0.05$ is much larger than 0.05.
+  \item Briefly explain why this happens and name one control strategy (alpha spending, pre-specified stopping).
+\end{itemize}
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,311 @@
+---
+title: "w6_timeseries_hw"
+author: "Songtao Duan"
+date: "2026-02-22"
+output: pdf_document
+---
+
+### Conceptual Question
+
+1. Time leakage (or temporal leakage) in time series occurs when future information, not available at the time of prediction, is used to train a model.
+
+With time-indexed data, a random train/test split often mixes past and future observations in both sets, so the model indirectly benefits from future trends or seasonality, which artificially lowers the RMSE and inflates apparent performance. In contrast, “train on past, test on future” mirrors the real-world forecasting setting, where we only use historical data to predict outcomes that have not yet occurred, making it the default rule for honest evaluation.
+
+Rolling-Origin Evaluation (Backtesting) goes further by repeatedly re-training the model on expanding windows of past data and testing on multiple future periods, providing a more stable and realistic assessment of how performance evolves over time rather than relying on a single split.
+
+### Applied Exercise
+#### Q3
+```{r}
+set.seed(14850)
+
+T <- 200
+alpha <- 0
+delta <- 0.04
+phi <- 0.6
+sigma <- 1.0
+
+# Q3
+# create a vector length 1*7 as weekly seasonal pattern
+season <- rep(c(1,2,3,2,1,0,-1), length.out=T) # repeat
+y <- rep(NA, T)
+eps <- rnorm(T,0,sigma)
+
+
+y[1] <- alpha + delta*1 + eps[1]
+for(t in 2:T){
+mu_t <- alpha + delta*t + season[t]
+y[t] <- mu_t +
+phi*(y[t-1] - (alpha + delta*(t-1) + season[t-1])) +
+eps[t]
+}
+
+# convert to a st object with weekly frequency
+y_ts <- ts(y, frequency=7)
+
+
+# seasonal decomposition
+stl_fit <- stl(y_ts, s.window = "periodic")
+
+# output directory
+dir.create("outputs/tables", recursive = TRUE, showWarnings = FALSE)
+dir.create("outputs/figures", recursive = TRUE, showWarnings = FALSE)
+
+
+png("outputs/figures/decomposition.png", width = 1200, height = 900, res = 150)
+
+plot(
+  stl_fit,
+  main = "STL Decomposition (Observed = Trend + Seasonality + Remainder)"
+)
+
+dev.off()
+
+```
+
+
+#### Q4
+```{r}
+# ============================================================
+# Q4. Rolling-origin evaluation (backtesting) for forecasting RMSE
+#   - h = 1 day ahead
+#   - expanding training window starting from initial_window
+#   - AR(1) fit each step using arima(order=c(1,0,0))
+#   - save:
+#       outputs/tables/backtest_errors.csv
+#       outputs/figures/backtest_forecast.png
+#   - compare to a single time-split RMSE
+# ============================================================
+
+set.seed(14850)
+
+# set up
+h <- 1
+initial_window <- 140  # choose initial training window (< T).
+
+stopifnot(length(y) == T)
+stopifnot(initial_window >= 10, initial_window <= (T - h - 1))
+
+# Create a simple daily date index (required for CSV "date")
+start_date <- as.Date("2020-01-01")
+dates <- seq.Date(from = start_date, by = "day", length.out = T)
+
+
+# ------------------------------------------------------------
+# Rolling-origin (expanding window) backtest:
+# for each t = initial_window,...,T-h:
+#   fit AR(1) on y[1:t]
+#   forecast y_{t+1}
+#   store error e_{t+1} = y_{t+1} - yhat_{t+1}
+# ------------------------------------------------------------
+yhat_bt <- rep(NA_real_, T)
+err_bt  <- rep(NA_real_, T)
+
+for (t in initial_window:(T - h)) {
+  train <- y[1:t]
+
+  fit <- arima(train, order = c(1, 0, 0))
+
+  # 1-step ahead forecast
+  pred <- predict(fit, n.ahead = h)$pred[h]
+  yhat_bt[t + h] <- as.numeric(pred)
+
+  # one-step-ahead error
+  err_bt[t + h] <- y[t + h] - yhat_bt[t + h]
+}
+
+# Backtest test region indices: from initial_window+1 through T
+test_idx <- (initial_window + h):T
+
+backtest_df <- data.frame(
+  t     = test_idx,
+  date  = dates[test_idx],
+  y     = y[test_idx],
+  yhat  = yhat_bt[test_idx],
+  error = err_bt[test_idx]
+)
+
+# drop any NAs (shouldn't happen beyond the first forecast, but safe)
+backtest_df <- backtest_df[complete.cases(backtest_df), ]
+
+# Backtest RMSE
+rmse_backtest <- sqrt(mean(backtest_df$error^2))
+
+# Save CSV
+write.csv(backtest_df, "outputs/tables/backtest_errors.csv", row.names = FALSE)
+
+# ------------------------------------------------------------
+# Single time-split RMSE (baseline):
+# Fit AR(1) once on first initial_window days, forecast the rest,
+# compute RMSE on the holdout.
+# ------------------------------------------------------------
+train_split <- y[1:initial_window]
+test_split  <- y[(initial_window + 1):T]
+
+fit_split <- arima(train_split, order = c(1, 0, 0))
+yhat_split <- as.numeric(predict(fit_split, n.ahead = length(test_split))$pred)
+
+rmse_single_split <- sqrt(mean((test_split - yhat_split)^2))
+
+cat(sprintf("RMSE (rolling-origin backtest, h=%d): %.4f\n", h, rmse_backtest))
+cat(sprintf("RMSE (single time-split):           %.4f\n", rmse_single_split))
+
+# ------------------------------------------------------------
+# Plot: actual vs rolling-origin 1-step forecasts over test region
+# Save to outputs/figures/backtest_forecast.png
+# ------------------------------------------------------------
+png("outputs/figures/backtest_forecast.png", width = 1200, height = 650, res = 150)
+
+plot(
+  backtest_df$date, backtest_df$y,
+  type = "l",
+  xlab = "Date",
+  ylab = "Value",
+  main = sprintf(
+    "Rolling-Origin Backtest (AR(1), h=%d)\nBacktest RMSE=%.4f | Single-split RMSE=%.4f",
+    h, rmse_backtest, rmse_single_split
+  )
+)
+
+lines(backtest_df$date, backtest_df$yhat, lty = 2)
+
+legend(
+  "topleft",
+  legend = c("Actual y", "1-step forecast yhat"),
+  lty = c(1, 2),
+  bty = "n"
+)
+
+dev.off()
+
+```
+
+#### Q5
+```{r}
+# ============================================================
+# Q5: Interrupted Time Series (ITS): level + slope change + placebo
+#   Model: y_t = alpha + delta*t + tau1*I[t>=t0] + tau2*(t-t0)*I[t>=t0] + e_t
+#   Save:
+#     - outputs/tables/its_results.csv  (coeff tables for real + placebo)
+#     - outputs/figures/its_plot.png    (observed + fitted + counterfactual)
+# ============================================================
+
+# Time index and date index (reuse the same date logic as Q4 if you used it)
+t <- 1:T
+start_date <- as.Date("2020-01-01")
+date <- seq.Date(from = start_date, by = "day", length.out = T)
+
+# Choose intervention date t0
+t0 <- floor(T / 2)  # "around the middle"
+cat(sprintf("ITS intervention date choice: t0 = %d (date = %s)\n", t0, as.character(date[t0])))
+
+# Intervention indicator and post-time counter
+I_post <- as.integer(t >= t0)
+post_time <- ifelse(t >= t0, t - t0, 0)
+
+# ----------------------------
+# Fit REAL ITS regression
+# ----------------------------
+
+its_real <- lm(y ~ t + I_post + post_time)
+
+# Fitted values from ITS model
+yhat_its <- as.numeric(fitted(its_real))
+
+# Counterfactual: set tau1 = tau2 = 0 (extend pre-period trend forward)
+# This corresponds to predictions from a model that only has alpha + delta*t,
+# using the estimated alpha/delta from the ITS regression.
+b <- coef(its_real)
+alpha_hat <- unname(b["(Intercept)"])
+delta_hat <- unname(b["t"])
+yhat_counterfactual <- alpha_hat + delta_hat * t
+
+# ----------------------------
+# Placebo ITS: fake intervention in PRE-period
+# ----------------------------
+t0_placebo <- floor(T / 4)
+
+cat(sprintf("Placebo intervention date choice: t0_placebo = %d (date = %s)\n",
+            t0_placebo, as.character(date[t0_placebo])))
+
+I_post_p <- as.integer(t >= t0_placebo)
+post_time_p <- ifelse(t >= t0_placebo, t - t0_placebo, 0)
+
+its_placebo <- lm(y ~ t + I_post_p + post_time_p)
+
+
+coef_p <- summary(its_placebo)$coefficients
+tau1_p <- coef_p["I_post_p", "Estimate"]
+tau2_p <- coef_p["post_time_p", "Estimate"]
+p_tau1 <- coef_p["I_post_p", "Pr(>|t|)"]
+p_tau2 <- coef_p["post_time_p", "Pr(>|t|)"]
+
+cat(sprintf(
+  "Placebo results: tau1=%.3f (p=%.3f), tau2=%.3f (p=%.3f).\n",
+  tau1_p, p_tau1, tau2_p, p_tau2
+))
+cat("Brief interpretation: if tau1/tau2 are statistically large in placebo, that suggests spurious detection (model can find 'effects' even without a real intervention).\n")
+
+
+# ----------------------------
+# Save coefficient tables (REAL + PLACEBO) to CSV
+# ----------------------------
+coef_table <- function(model, model_name){
+  sm <- summary(model)$coefficients
+  data.frame(
+    model = model_name,
+    term = rownames(sm),
+    estimate = sm[, "Estimate"],
+    std_error = sm[, "Std. Error"],
+    statistic = sm[, "t value"],
+    p_value = sm[, "Pr(>|t|)"],
+    row.names = NULL
+  )
+}
+
+its_results <- rbind(
+  coef_table(its_real, "real_its"),
+  coef_table(its_placebo, "placebo_its")
+)
+
+write.csv(its_results, "outputs/tables/its_results.csv", row.names = FALSE)
+
+# ----------------------------
+# Plot: observed y, fitted ITS, counterfactual (tau1=tau2=0)
+# Save as outputs/figures/its_plot.png
+# ----------------------------
+png("outputs/figures/its_plot.png", width = 1200, height = 650, res = 150)
+
+plot(
+  date, y,
+  type = "l",
+  xlab = "Date",
+  ylab = "y",
+  main = sprintf(
+    "Interrupted Time Series (t0=%d) with Placebo Check (t0_placebo=%d)",
+    t0, t0_placebo
+  )
+)
+
+lines(date, yhat_its, lty = 2)
+lines(date, yhat_counterfactual, lty = 3)
+
+abline(v = date[t0], lwd = 2)          # real intervention marker
+abline(v = date[t0_placebo], lty = 2)  # placebo marker
+
+legend(
+  "topleft",
+  legend = c(
+    "Observed y",
+    "Fitted ITS",
+    "Counterfactual (tau1=tau2=0)",
+    sprintf("Real t0 = %d", t0),
+    sprintf("Placebo t0 = %d", t0_placebo)
+  ),
+  lty = c(1, 2, 3, 1, 2),
+  bty = "n"
+)
+
+dev.off()
+```
+
+
