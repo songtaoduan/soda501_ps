@@ -1,0 +1,85 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb, graphicx, hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage[margin=1in]{geometry}
+
+\title{ Deterministic and Probabilistic Matching}
+\author{ }
+\date{ }
+
+
+
+\begin{document}
+\maketitle
+
+\noindent \textbf{Note on data.} This problem set uses \textbf{synthetic} (simulated) individual-level data. The goal is to practice record linkage and threshold selection---not to draw substantive inferences about real people.
+
+\section*{Conceptual Questions}
+Please write three to ten sentence explanations for each of the following questions. \textbf{You are only required to answer ONE of the two questions below.} \bigskip
+ 
+\begin{enumerate}
+
+\item Explain why deterministic (exact) matching can fail even when two datasets contain the same underlying individuals. In your answer, define the trade-off between \textbf{false matches} and \textbf{missed matches}, and explain how probabilistic matching (e.g., \texttt{fastLink}) attempts to manage that trade-off.
+
+\item Matching errors are often \textbf{not random}. Give two reasons why record linkage error might vary across individuals or groups (e.g., name commonness, transliteration, data-entry error, moving/ZIP changes). Explain one implication for social science inference if linkage quality differs systematically across groups.
+
+  \end{enumerate}
+
+
+\section*{Applied Exercises}
+Use the code in the week's code tutorial and the lecture slides to answer the following questions.\bigskip
+
+  \begin{enumerate}
+  \setcounter{enumi}{2}
+
+\item \textbf{Generate (or load) the synthetic data + deterministic matching.}
+Run the provided script to generate and save \texttt{dataset\_a.csv} and \texttt{dataset\_b.csv}, then load them into R.
+\begin{itemize}
+  \item Perform deterministic (exact) matching on \texttt{firstname}, \texttt{lastname}, \texttt{birthyear}, and \texttt{zipcode} (e.g., \texttt{merge(..., by = ...)}).
+  \item Report the number of deterministic matches and the match rate (matches divided by \texttt{nrow(df\_a)}).
+  \item In 3--6 sentences, explain why the deterministic match count looks the way it does in this simulation.
+\end{itemize}
+
+\item \textbf{Probabilistic matching with \texttt{fastLink} + threshold curve.}
+Using \texttt{fastLink}, match \texttt{df\_a} and \texttt{df\_b} on \texttt{firstname}, \texttt{lastname}, \texttt{birthyear}, and \texttt{zipcode}.
+\begin{itemize}
+  \item Use \texttt{fastLink(..., return.all = TRUE)}.
+  \item Use \texttt{getMatches(..., threshold.match = t)} for a grid of thresholds from 0 to 1 (e.g., increments of 0.01).
+  \item Create a plot of \textbf{number of matches} vs.\ \textbf{threshold}.
+  \item In 4--6 sentences, describe how and why the curve changes as the threshold increases.
+\end{itemize}
+
+\item \textbf{Match quality, choosing a threshold, and interpreting posteriors.}
+Using the probabilistic matches, evaluate match quality as the threshold changes and justify a final choice.
+\begin{itemize}
+  \item Create a low-threshold ``candidate match'' set (e.g., \texttt{threshold.match = 0.000001}) and then group matches by posterior bins (e.g., 0.0--0.1, 0.1--0.2, \dots, 0.9--1.0).
+  \item For each posterior bin, compute:
+  \begin{enumerate}
+    \item Levenshtein distance for first names (e.g., \texttt{stringdist(..., method = "lv")}),
+    \item Levenshtein distance for last names,
+    \item absolute difference in birth year.
+  \end{enumerate}
+  \item Make at least one plot that shows how these distances relate to posterior scores (e.g., boxplots of distance by posterior bin).
+  \item Based on your diagnostics, choose a threshold you would use for this dataset and defend your choice (5--8 sentences).
+  \item In your discussion, address:
+  \begin{enumerate}
+    \item how deterministic vs probabilistic matching differ in the number of matches found,
+    \item how changing the threshold affects both the number of matches and match quality,
+    \item at least two limitations or biases of each approach,
+    \item the relationship between string distance and the posterior/threshold measure.
+  \end{enumerate}
+\end{itemize}
+
+\item \textbf{Challenge Question (Optional --- if you finish early):}
+Experiment with modelling choices in \texttt{fastLink}.
+\begin{itemize}
+  \item Try at least \textbf{two} different matching-variable sets (e.g., drop \texttt{zipcode}; or match only on names + birthyear).
+  \item Try at least \textbf{two} different string distance methods for names (see \texttt{stringdist} methods such as Jaro-Winkler vs Levenshtein).
+  \item For each configuration, plot the threshold--matches curve and summarize how match quality changes (5--8 sentences).
+  \item Briefly discuss the implications of these modelling choices for real social-science linkage tasks (e.g., voter files, administrative records, platform data).
+\end{itemize}
+
+\end{enumerate}
+
+\end{document}
