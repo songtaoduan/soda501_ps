@@ -1,0 +1,19 @@
+variable,description,notes
+responseid,Unique respondent identifier,Platform metadata
+start_date,Survey start time,Parsed from string
+end_date,Survey end time,Parsed from string
+duration_seconds,Survey duration in seconds,Converted to numeric
+duration_min,Survey duration in minutes,Created from duration_seconds
+ipaddress,Respondent IP address,Sensitive metadata
+platform,Recruitment platform,Platform metadata
+prolific_id,Prolific respondent ID,Blank for non-Prolific respondents
+mturk_workerid,MTurk worker ID,Blank for non-MTurk respondents
+consent,Consent response,Used for filtering
+age_num,Respondent age in years,Converted from string
+gender,Respondent gender,Cleaned missing strings
+partyid,Party identification,Cleaned missing strings
+attentioncheck,Attention-check response,Used for quality check
+q1_policy,Policy attitude item 1,Survey item
+q2_policy,Policy attitude item 2,Survey item
+q3_policy,Policy attitude item 3,Survey item
+q4_policy,Policy attitude item 4,Survey item

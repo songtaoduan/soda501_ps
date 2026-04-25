@@ -1,0 +1,13 @@
+ResponseId,StartDate,EndDate,Duration_seconds,IPAddress,Platform,Prolific_ID,MTurk_WorkerId,Consent,Age,Gender,PartyID,AttentionCheck,Q1_policy,Q2_policy,Q3_policy,Q4_policy
+R_001,2026-02-05 10:00:05,2026-02-05 10:04:20,255,73.10.20.1,Prolific,5f1aA,,Yes,34,Man,Democrat,Strongly disagree,Agree,Agree,Agree,Agree
+R_002,2026-02-05 10:01:10,2026-02-05 10:02:05,55,73.10.20.2,Prolific,5f1aB,,Yes,29,Woman,Independent,Strongly disagree,Agree,Agree,Agree,Agree
+R_003,2026-02-05 10:02:02,2026-02-05 10:10:44,522,73.10.20.3,Prolific,5f1aC,,Yes,41,Woman,Republican,Strongly disagree,Strongly agree,Strongly agree,Strongly agree,Strongly agree
+R_004,2026-02-05 10:03:41,2026-02-05 10:06:10,149,73.10.20.4,Prolific,5f1aD,,Yes,,Man,Democrat,Agree,Agree,Agree,Agree,Agree
+R_005,2026-02-05 10:05:00,2026-02-05 10:07:12,132,73.10.20.5,MTurk,,A11X,Yes,22,Nonbinary,Independent,Strongly disagree,Agree,Agree,Agree,Agree
+R_006,2026-02-05 10:05:45,2026-02-05 10:08:03,138,73.10.20.6,MTurk,,A11Y,No,27,Woman,Democrat,Strongly disagree,Agree,Agree,Agree,Agree
+R_007,2026-02-05 10:06:10,2026-02-05 10:07:05,55,73.10.20.7,MTurk,,A11Z,Yes,18,Man,,Agree,Agree,Agree,Agree,Agree
+R_008,2026-02-05 10:07:33,2026-02-05 10:08:20,47,73.10.20.8,MTurk,,A11W,Yes,19,,Republican,Strongly disagree,Agree,Agree,Agree,Agree
+R_009,2026-02-05 10:08:09,2026-02-05 10:14:45,396,73.10.20.9,DepartmentPool,,,Yes,45,Woman,Democrat,Strongly disagree,Strongly agree,Strongly agree,Strongly agree,Strongly agree
+R_010,2026-02-05 10:09:18,2026-02-05 10:10:55,97,73.10.20.10,DepartmentPool,,,Yes,38,Man,Independent,Strongly disagree,Agree,Agree,Agree,Agree
+R_011,2026-02-05 10:10:07,2026-02-05 10:12:50,163,73.10.20.11,DepartmentPool,,,Yes,33,Prefer not to say,Republican,Strongly disagree,Agree,Agree,Agree,Agree
+R_012,2026-02-05 10:11:55,2026-02-05 10:19:40,465,73.10.20.12,DepartmentPool,,,Yes,Prefer not to say,Woman,Independent,Strongly disagree,Agree,Agree,Agree,Agree
