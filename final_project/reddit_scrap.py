@@ -152,7 +152,7 @@ print(comments.shape)
 
 
 # ----------------------------------
-# Prepare text data 
+# Prepare text data (Preprocessing)
 # ----------------------------------
 comments["text"] = comments["comment_text"].fillna("").astype(str)
 
